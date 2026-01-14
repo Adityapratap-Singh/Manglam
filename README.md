@@ -18,10 +18,16 @@ A modern, elegant digital wedding invitation platform built with Node.js, Expres
 - **Beautiful UI**: Elegant, responsive invitation design with Hindi language support
 
 ### 🔒 Security Features
-- Session-based authentication with bcryptjs password hashing
-- Protected API endpoints requiring admin login
-- CSRF protection through Express-session
-- Secure credential storage using environment variables
+- **Helmet.js**: Comprehensive HTTP security headers
+- **Rate Limiting**: Protects against brute force attacks (5 login attempts per 15 mins)
+- **NoSQL Injection Prevention**: Data sanitization and validation
+- **CORS Protection**: Whitelist-based origin validation
+- **Session Security**: HTTPOnly, SameSite: Strict cookies
+- **Input Validation**: Prevents suspicious patterns and SQL/NoSQL injection
+- **Password Hashing**: bcryptjs with salt rounds
+- **CSRF Protection**: Secure session management
+- **Payload Size Limiting**: Maximum 10MB request limit
+- **Error Handling**: Secure error messages in production
 
 ### 📱 User Interface
 - Modern admin panel with Material Design principles
@@ -58,7 +64,8 @@ wedding-platform/
 │   │   ├── guestRoutes.js        # Guest API routes
 │   │   └── pageRoutes.js         # Page routes
 │   ├── middleware/
-│   │   └── authMiddleware.js     # Authentication middleware
+│   │   ├── authMiddleware.js     # Authentication middleware
+│   │   └── securityMiddleware.js # Security headers and rate limiting
 │   ├── public/
 │   │   ├── admin.css             # Admin panel styles
 │   │   ├── admin.js              # Admin panel functionality
@@ -97,6 +104,10 @@ This will install:
 - `cors` - Cross-origin resource sharing
 - `dotenv` - Environment variable management
 - `uuid` - Unique ID generation
+- `helmet` - HTTP security headers
+- `express-rate-limit` - Rate limiting middleware
+- `express-mongo-sanitize` - NoSQL injection prevention
+- `validator` - Input validation
 
 ### Step 3: Configure Environment Variables
 
@@ -257,6 +268,10 @@ No session? → Redirect to /login
 - **Mongoose**: MongoDB ODM
 - **Express-session**: Session management
 - **bcryptjs**: Password hashing
+- **Helmet.js**: HTTP security headers
+- **Express-rate-limit**: DDoS and brute force protection
+- **express-mongo-sanitize**: NoSQL injection prevention
+- **Validator**: Input validation library
 - **CORS**: Cross-origin resource sharing
 - **UUID**: Unique ID generation
 
@@ -284,8 +299,24 @@ ADMIN_USER=manglam
 ADMIN_PASS=shadi2026
 
 # Session Secret (for session encryption)
-SESSION_SECRET=manglam_secret_key
+SESSION_SECRET=manglam_secret_key_change_in_production
+
+# Environment (development or production)
+NODE_ENV=development
+
+# Server Port
+PORT=5000
+
+# Allowed CORS Origins
+ALLOWED_ORIGIN=http://localhost:5000
 ```
+
+**⚠️ Security Note**: 
+- Never commit `.env` file to version control
+- Change `SESSION_SECRET` to a strong random value in production
+- Update `ADMIN_PASS` to a secure password
+- Set `NODE_ENV=production` when deploying
+- Enable HTTPS for production and set secure cookies
 
 ---
 
@@ -343,6 +374,7 @@ npm install express mongoose express-session bcryptjs cors uuid dotenv
 
 ### Middleware
 - **authMiddleware.js**: Authentication verification middleware
+- **securityMiddleware.js**: Security headers, rate limiting, and data sanitization
 
 ### Views
 - **views/login.html**: Admin login page
@@ -381,7 +413,57 @@ Edit CSS files:
 
 ---
 
-## 🚀 Deployment
+## � Security Best Practices
+
+### Rate Limiting Configuration
+- **Login Endpoint**: 5 attempts per 15 minutes (per IP)
+- **General API**: 100 requests per 10 minutes (per IP)
+- **Guest Lookup**: 20 requests per minute (per IP)
+
+### Session Security
+- **HTTPOnly Cookies**: Prevents XSS attacks by blocking JavaScript access
+- **SameSite Strict**: Prevents CSRF attacks
+- **Secure Flag**: Enabled in production for HTTPS only
+- **Session Expiry**: 24 hours with automatic cleanup
+
+### Data Protection
+- **NoSQL Injection Prevention**: Input sanitization and validation
+- **Password Hashing**: bcryptjs with salt rounds for secure storage
+- **Environment Variables**: Sensitive data stored in `.env` (not in code)
+
+### HTTP Security Headers
+- **Content Security Policy (CSP)**: Prevents XSS attacks
+- **HSTS**: Forces HTTPS in production
+- **X-Frame-Options**: Prevents clickjacking
+- **X-Content-Type-Options**: Prevents MIME sniffing
+- **Referrer Policy**: Controls referrer information
+
+### CORS Security
+- **Origin Whitelist**: Only specified origins can access API
+- **Credentials**: Properly configured for secure requests
+- **Methods**: Limited to GET, POST, PUT, DELETE, OPTIONS
+
+---
+
+## 🛡️ Security Checklist for Production
+
+- [ ] Change default admin credentials in `.env`
+- [ ] Generate strong SESSION_SECRET (use `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`)
+- [ ] Set `NODE_ENV=production`
+- [ ] Enable HTTPS/TLS on your domain
+- [ ] Set `secure: true` for cookies in `securityMiddleware.js`
+- [ ] Update `ALLOWED_ORIGIN` to your production domain
+- [ ] Verify MongoDB Atlas IP whitelist includes your server
+- [ ] Review and update CORS options for your domain
+- [ ] Monitor rate limiting thresholds based on traffic
+- [ ] Enable database encryption in MongoDB Atlas
+- [ ] Set up automated backups for database
+- [ ] Use strong, unique password for MongoDB user
+- [ ] Regularly update dependencies: `npm audit` and `npm update`
+- [ ] Review security logs and access patterns
+- [ ] Set up error logging/monitoring service (Sentry, LogRocket, etc.)
+
+---
 
 ### Deploying to Heroku
 ```bash
@@ -414,16 +496,20 @@ git push heroku main
 
 ## 📋 Checklist for Production
 
-- [ ] Update MongoDB Atlas IP whitelist
 - [ ] Change default admin credentials
-- [ ] Set secure SESSION_SECRET
-- [ ] Update contact information (WhatsApp, email)
-- [ ] Customize wedding details in invite.html
+- [ ] Generate strong SESSION_SECRET
+- [ ] Set `NODE_ENV=production`
+- [ ] Enable HTTPS on domain
+- [ ] Update ALLOWED_ORIGIN to production domain
+- [ ] Review and test all security middleware
+- [ ] Set up database backups
+- [ ] Update MongoDB Atlas IP whitelist
+- [ ] Review CORS configuration
+- [ ] Monitor rate limiting performance
+- [ ] Update contact information in invite.html
 - [ ] Test all endpoints with real data
-- [ ] Set `secure: true` in cookie for HTTPS
-- [ ] Enable HTTPS on your domain
-- [ ] Set up email notifications (optional)
-- [ ] Create backup of MongoDB
+- [ ] Set up error logging/monitoring
+- [ ] Review and audit dependencies regularly
 
 ---
 
@@ -476,4 +562,5 @@ A: Coming in future versions. Currently view-only for tracking opens.
 ---
 
 **Last Updated**: January 14, 2026
-**Version**: 1.0.0
+**Version**: 1.1.0
+**Security Level**: Production-Ready with Enterprise Security Features
